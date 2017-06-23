@@ -55,14 +55,14 @@ public abstract class FileListener {
 	}
 	
 	private void registerRecursive(final Path root) throws IOException {
-		FileListener master = this;
+		FileListener parent = this;
 
-		// Register all subfolders		
+		// Register all subfolders
 		File[] directories = root.toFile().listFiles(File::isDirectory);
 		for(File directory : directories) {
 			new FileListener(directory.toPath(), true) {
 				public void onFileEvent(FileEvent event) {
-					master.onFileEvent(event);
+					parent.onFileEvent(event);
 				}
 			};
 		}

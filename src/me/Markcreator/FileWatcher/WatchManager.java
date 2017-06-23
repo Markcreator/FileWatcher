@@ -33,7 +33,7 @@ public class WatchManager {
 		Thread t = new Thread(() -> {
 			for (;;) {
 
-				// Wait for key to be signaled
+				// Wait a key to be signaled
 				WatchKey key;
 				try {
 					key = watcher.take();
@@ -41,48 +41,50 @@ public class WatchManager {
 					return;
 				}
 				FileListener fl = getFileListener(key);
-				
-				if(fl != null) {
+
+				if (fl != null) {
 					for (WatchEvent<?> event : key.pollEvents()) {
 						WatchEvent.Kind<?> kind = event.kind();
-	
+
 						// This key is registered only
 						// for ENTRY_CREATE events,
 						// but an OVERFLOW event can
 						// occur regardless if events
-						// are lost or discarded.
+						// are lost or discarded
 						if (kind == OVERFLOW) {
 							continue;
 						}
-	
-						// The filename is the context of the event.
+
+						// The filename is the context of the event
 						WatchEvent<Path> ev = (WatchEvent<Path>) event;
 						Path filename = ev.context();
 						File file = fl.getDir().resolve(filename).toFile();
-						
+
+						// Call the event
 						fl.onFileEvent(new FileEvent(file, kind));
-						
-						// Register new listener if file is a folder
-						if(fl.isRecursive() && file.isDirectory() && kind == ENTRY_CREATE) {
+
+						// Register new listener(s) if new file is a folder
+						if (fl.isRecursive() && file.isDirectory() && kind == ENTRY_CREATE) {
 							new FileListener(file.toPath(), true) {
 								public void onFileEvent(FileEvent e) {
 									fl.onFileEvent(e);
 								}
 							};
 						}
-						
-						//Remove listener if folder is deleted
-						if(kind == ENTRY_DELETE && fl.isRecursive()) {
+
+						// Remove listener if file is folder and is deleted
+						if (kind == ENTRY_DELETE && fl.isRecursive()) {
 							FileListener deletedListener = getFileListener(file.getAbsolutePath());
-							if(deletedListener != null) {
+							if (deletedListener != null) {
 								removeFileListener(deletedListener);
 							}
 						}
 					}
-					
+
 					// Reset the key -- this step is critical if you want to
-					// receive further watch events. If the key is no longer valid,
-					// the directory is inaccessible so remove the listener.
+					// receive further watch events. If the key is no longer
+					// valid,
+					// the directory is inaccessible so remove the listener
 					boolean valid = key.reset();
 					if (!valid) {
 						removeFileListener(fl);
@@ -103,42 +105,42 @@ public class WatchManager {
 
 	public void addFileListener(FileListener fl) {
 		listeners.add(fl);
-	    System.out.println("[FileWatcher] Registered " + fl.getDir().toString());
+		//System.out.println("[FileWatcher] Registered " + fl.getDir().toString());
 	}
-	
+
 	public void removeFileListener(FileListener fl) {
 		listeners.remove(fl);
 		fl.getKey().cancel();
-	    System.out.println("[FileWatcher] Unregistered " + fl.getDir().toString());
-	    
-	    //Remove all child listeners
-	    if(fl.isRecursive()) {
-		    for(FileListener all : getFileListeners()) {
-		    	if(all.getDir().startsWith(fl.getDir())) {
-		    		removeFileListener(all);
-		    	}
-		    }
-	    }
+		System.out.println("[FileWatcher] Unregistered " + fl.getDir().toString());
+
+		// Remove all child listeners
+		if (fl.isRecursive()) {
+			for (FileListener all : getFileListeners()) {
+				if (all.getDir().startsWith(fl.getDir())) {
+					removeFileListener(all);
+				}
+			}
+		}
 	}
-	
+
 	public FileListener getFileListener(WatchKey key) {
-		for(FileListener fl : listeners) {
-			if(fl.getKey().equals(key)) {
+		for (FileListener fl : listeners) {
+			if (fl.getKey().equals(key)) {
 				return fl;
 			}
 		}
 		return null;
 	}
-	
+
 	public FileListener getFileListener(String path) {
-		for(FileListener fl : listeners) {
-			if(fl.getDir().toString().equals(path)) {
+		for (FileListener fl : listeners) {
+			if (fl.getDir().toString().equals(path)) {
 				return fl;
 			}
 		}
 		return null;
 	}
-	
+
 	public ArrayList<FileListener> getFileListeners() {
 		return listeners;
 	}
