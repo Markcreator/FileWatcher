@@ -105,7 +105,7 @@ public class WatchManager {
 
 	public void addFileListener(FileListener fl) {
 		listeners.add(fl);
-		//System.out.println("[FileWatcher] Registered " + fl.getDir().toString());
+		System.out.println("[FileWatcher] Registered " + fl.getDir().toString());
 	}
 
 	public void removeFileListener(FileListener fl) {
