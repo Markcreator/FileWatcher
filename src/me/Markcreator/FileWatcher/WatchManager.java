@@ -13,12 +13,14 @@ import java.util.ArrayList;
 
 public class WatchManager {
 
-	private static WatchManager watchManager = new WatchManager();
+	private static WatchManager watchManager = new WatchManager(false);
 	private WatchService watcher;
 	private ArrayList<FileListener> listeners = new ArrayList<>();
-
-	private WatchManager() {
-		watcher = null;
+	private boolean debug;
+	
+	private WatchManager(boolean debug) {
+		this.debug = debug;
+		
 		try {
 			watcher = FileSystems.getDefault().newWatchService();
 		} catch (IOException e) {
@@ -29,7 +31,7 @@ public class WatchManager {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void startListener() {
+	private void startListener() {
 		Thread t = new Thread(() -> {
 			for (;;) {
 
@@ -73,8 +75,9 @@ public class WatchManager {
 						}
 
 						// Remove listener if file is folder and is deleted
-						if (kind == ENTRY_DELETE && fl.isRecursive()) {
+						if (fl.isRecursive() && kind == ENTRY_DELETE) {
 							FileListener deletedListener = getFileListener(file.getAbsolutePath());
+							
 							if (deletedListener != null) {
 								removeFileListener(deletedListener);
 							}
@@ -103,16 +106,26 @@ public class WatchManager {
 		return watcher;
 	}
 
+	public void setDebug(boolean debug) {
+		this.debug = debug;
+	}
+	
 	public void addFileListener(FileListener fl) {
 		listeners.add(fl);
-		System.out.println("[FileWatcher] Registered " + fl.getDir().toString());
+		
+		if(debug) {
+			System.out.println("[FileWatcher] Registered " + fl.getDir().toString());
+		}
 	}
 
 	public void removeFileListener(FileListener fl) {
 		listeners.remove(fl);
 		fl.getKey().cancel();
-		System.out.println("[FileWatcher] Unregistered " + fl.getDir().toString());
-
+		
+		if(debug) {
+			System.out.println("[FileWatcher] Unregistered " + fl.getDir().toString());
+		}
+		
 		// Remove all child listeners
 		if (fl.isRecursive()) {
 			for (FileListener all : getFileListeners()) {
@@ -145,5 +158,3 @@ public class WatchManager {
 		return listeners;
 	}
 }
-
-// https://docs.oracle.com/javase/tutorial/essential/io/notification.html
